@@ -191,7 +191,14 @@ class DataManager: ObservableObject {
     func getTemplate(for type: WorkoutType) -> WorkoutTemplate? {
         appState.templates.first { $0.workoutType == type }
     }
-    
+
+    func getPreviousWorkout(for type: WorkoutType) -> WorkoutSession? {
+        appState.workoutHistory
+            .filter { $0.workoutType == type && $0.isCompleted }
+            .sorted { $0.startTime > $1.startTime }
+            .first
+    }
+
     // MARK: - Default Templates
     
     static func defaultTemplates() -> [WorkoutTemplate] {

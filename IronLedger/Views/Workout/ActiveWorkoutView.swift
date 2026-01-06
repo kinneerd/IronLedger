@@ -162,17 +162,27 @@ struct ExerciseCard: View {
     let exerciseIndex: Int
     let isExpanded: Bool
     let onToggleExpand: () -> Void
-    
+
+    @EnvironmentObject var dataManager: DataManager
+
     @State private var showingRestTimer = false
     @State private var restTimeRemaining: Int = 0
     @State private var showingNotes = false
-    
+
     var completedSets: Int {
         exercise.sets.filter { $0.isCompleted }.count
     }
-    
+
     var totalSets: Int {
         exercise.sets.count
+    }
+
+    var previousExercise: LoggedExercise? {
+        guard let activeWorkout = dataManager.activeWorkout,
+              let previousWorkout = dataManager.getPreviousWorkout(for: activeWorkout.workoutType) else {
+            return nil
+        }
+        return previousWorkout.exercises.first { $0.exerciseName == exercise.exerciseName }
     }
     
     var body: some View {
@@ -229,6 +239,7 @@ struct ExerciseCard: View {
                             set: $exercise.sets[index],
                             setNumber: index + 1,
                             category: exercise.category,
+                            previousSet: previousSetData(for: index),
                             onComplete: {
                                 startRestTimer()
                             }
@@ -302,6 +313,14 @@ struct ExerciseCard: View {
         restTimeRemaining = exercise.restSeconds
         showingRestTimer = true
     }
+
+    func previousSetData(for index: Int) -> ExerciseSet? {
+        guard let previousExercise = previousExercise else { return nil }
+        let workingSets = previousExercise.workingSets
+        let workingSetIndex = exercise.sets.prefix(index + 1).filter { $0.setType == .working }.count - 1
+        guard workingSetIndex >= 0 && workingSetIndex < workingSets.count else { return nil }
+        return workingSets[workingSetIndex]
+    }
 }
 
 // MARK: - Set Row
@@ -310,82 +329,107 @@ struct SetRow: View {
     @Binding var set: ExerciseSet
     let setNumber: Int
     let category: ExerciseCategory
+    let previousSet: ExerciseSet?
     let onComplete: () -> Void
-    
+
     @State private var repsText: String = ""
     @State private var weightText: String = ""
     @FocusState private var focusedField: Field?
-    
+
     enum Field {
         case reps, weight
     }
+
+    var previousSetDisplay: String? {
+        guard set.setType == .working,
+              let prevSet = previousSet,
+              let weight = prevSet.weight,
+              let reps = prevSet.reps else {
+            return nil
+        }
+        return "Last: \(Int(weight))×\(reps)"
+    }
     
     var body: some View {
-        HStack(spacing: 12) {
-            // Set type badge
-            Text(set.setType == .warmup ? "W" : "\(setNumber)")
-                .font(.gymCaption)
-                .foregroundColor(set.setType == .warmup ? .warmupColor : .gymTextPrimary)
-                .frame(width: 28, height: 28)
-                .background(set.setType == .warmup ? Color.warmupColor.opacity(0.2) : Color.gymElevated)
-                .cornerRadius(6)
-            
-            // Weight input
-            HStack(spacing: 4) {
-                TextField("—", text: $weightText)
-                    .keyboardType(.decimalPad)
-                    .multilineTextAlignment(.center)
-                    .font(.gymSubheadline)
-                    .foregroundColor(.gymTextPrimary)
-                    .frame(width: 60)
-                    .focused($focusedField, equals: .weight)
-                    .onChange(of: weightText) { _, newValue in
-                        set.weight = Double(newValue)
-                    }
-                
-                Text("lbs")
+        VStack(spacing: 4) {
+            HStack(spacing: 12) {
+                // Set type badge
+                Text(set.setType == .warmup ? "W" : "\(setNumber)")
                     .font(.gymCaption)
-                    .foregroundColor(.gymTextTertiary)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
-            .background(Color.gymElevated)
-            .cornerRadius(8)
-            
-            // Reps input
-            HStack(spacing: 4) {
-                TextField("—", text: $repsText)
-                    .keyboardType(.numberPad)
-                    .multilineTextAlignment(.center)
-                    .font(.gymSubheadline)
-                    .foregroundColor(.gymTextPrimary)
-                    .frame(width: 40)
-                    .focused($focusedField, equals: .reps)
-                    .onChange(of: repsText) { _, newValue in
-                        set.reps = Int(newValue)
-                    }
-                
-                Text("reps")
-                    .font(.gymCaption)
-                    .foregroundColor(.gymTextTertiary)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
-            .background(Color.gymElevated)
-            .cornerRadius(8)
-            
-            Spacer()
-            
-            // Complete button
-            Button(action: {
-                set.isCompleted.toggle()
-                if set.isCompleted {
-                    onComplete()
+                    .foregroundColor(set.setType == .warmup ? .warmupColor : .gymTextPrimary)
+                    .frame(width: 28, height: 28)
+                    .background(set.setType == .warmup ? Color.warmupColor.opacity(0.2) : Color.gymElevated)
+                    .cornerRadius(6)
+
+                // Weight input
+                HStack(spacing: 4) {
+                    TextField("—", text: $weightText)
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.center)
+                        .font(.gymSubheadline)
+                        .foregroundColor(.gymTextPrimary)
+                        .frame(width: 60)
+                        .focused($focusedField, equals: .weight)
+                        .onChange(of: weightText) { _, newValue in
+                            set.weight = Double(newValue)
+                        }
+
+                    Text("lbs")
+                        .font(.gymCaption)
+                        .foregroundColor(.gymTextTertiary)
                 }
-            }) {
-                Image(systemName: set.isCompleted ? "checkmark.circle.fill" : "circle")
-                    .font(.title2)
-                    .foregroundColor(set.isCompleted ? .gymSuccess : .gymTextTertiary)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(Color.gymElevated)
+                .cornerRadius(8)
+
+                // Reps input
+                HStack(spacing: 4) {
+                    TextField("—", text: $repsText)
+                        .keyboardType(.numberPad)
+                        .multilineTextAlignment(.center)
+                        .font(.gymSubheadline)
+                        .foregroundColor(.gymTextPrimary)
+                        .frame(width: 40)
+                        .focused($focusedField, equals: .reps)
+                        .onChange(of: repsText) { _, newValue in
+                            set.reps = Int(newValue)
+                        }
+
+                    Text("reps")
+                        .font(.gymCaption)
+                        .foregroundColor(.gymTextTertiary)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(Color.gymElevated)
+                .cornerRadius(8)
+
+                Spacer()
+
+                // Complete button
+                Button(action: {
+                    set.isCompleted.toggle()
+                    if set.isCompleted {
+                        onComplete()
+                    }
+                }) {
+                    Image(systemName: set.isCompleted ? "checkmark.circle.fill" : "circle")
+                        .font(.title2)
+                        .foregroundColor(set.isCompleted ? .gymSuccess : .gymTextTertiary)
+                }
+            }
+
+            // Previous set indicator
+            if let previousDisplay = previousSetDisplay {
+                HStack {
+                    Spacer()
+                        .frame(width: 40) // Align with inputs, accounting for badge
+                    Text(previousDisplay)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.gymTextTertiary)
+                    Spacer()
+                }
             }
         }
         .padding(.horizontal, 16)
