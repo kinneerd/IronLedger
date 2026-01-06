@@ -23,6 +23,7 @@ A minimal, focused iOS fitness tracker app for muscle-building, built with Swift
 - **Exercise-specific Defaults**: 2:30 main lifts, 1:30 compounds, 1:00 accessories
 - **Quick Adjustments**: +30s button and skip option
 - **Visual Feedback**: Circular progress indicator with haptic feedback on completion
+- **Bible Verse Display**: 30 curated motivational scriptures shown during rest (can be toggled off in Settings)
 
 ### Progress Tracking
 - **Automatic PR Detection**: App detects and celebrates new personal records
@@ -55,6 +56,7 @@ A minimal, focused iOS fitness tracker app for muscle-building, built with Swift
 - **Local Storage**: All data stored locally using UserDefaults (no cloud required)
 - **Lifetime Stats**: Total workouts, personal records count, total volume lifted
 - **Rotation Indicator**: Visual display of current position in A/B/C cycle
+- **Preferences**: Toggle Bible verses on/off during rest periods
 - **Data Management**: Reset all data option with confirmation
 
 ### Design & UX
@@ -166,8 +168,6 @@ Notes: Left knee felt tight during warmup, loosened up after squats.
 ## Roadmap
 
 ### Planned Features
-- **Rest Timer Auto-start**: Option to automatically start timer when completing a set
-- **Bible Verse on Rest Timer**: Display motivating scripture during rest periods
 - **Exercise Search Library**: Searchable database when adding exercises
 
 ### Future Enhancements

@@ -97,6 +97,7 @@ IronLedger/
 - Skip rest option
 - Circular progress indicator
 - Haptic feedback on completion
+- Bible verse display during rest (30 curated motivational verses, can be toggled off in Settings)
 
 ### Progress Tracking
 - Automatic PR detection and tracking
@@ -134,6 +135,7 @@ IronLedger/
 - Personal records count
 - Total volume lifted (lifetime)
 - Current rotation indicator
+- Bible verse toggle (enable/disable during rest)
 - Reset all data option
 
 ### UI/UX
@@ -150,8 +152,6 @@ IronLedger/
 
 | Priority | Feature | Description |
 |----------|---------|-------------|
-| 3 | Rest timer auto-start | Option to auto-start timer when a set is marked complete |
-| 4 | Bible verse on rest timer | Display a motivating scripture during rest periods |
 | 5 | Exercise search library | Searchable database when adding exercises |
 
 ---

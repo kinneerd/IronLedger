@@ -96,7 +96,41 @@ struct SettingsView: View {
                     }
                     .padding(16)
                     .cardStyle()
-                    
+
+                    // Preferences
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Preferences")
+                            .font(.gymHeadline)
+                            .foregroundColor(.gymTextPrimary)
+
+                        Toggle(isOn: Binding(
+                            get: { dataManager.appState.showBibleVerses },
+                            set: { newValue in
+                                dataManager.appState.showBibleVerses = newValue
+                                dataManager.save()
+                            }
+                        )) {
+                            HStack {
+                                Image(systemName: "book")
+                                    .foregroundColor(.gymTextSecondary)
+                                    .frame(width: 24)
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Show Bible Verses")
+                                        .font(.gymBody)
+                                        .foregroundColor(.gymTextPrimary)
+
+                                    Text("Display motivating scripture during rest periods")
+                                        .font(.gymCaption)
+                                        .foregroundColor(.gymTextTertiary)
+                                }
+                            }
+                        }
+                        .tint(.gymAccent)
+                    }
+                    .padding(16)
+                    .cardStyle()
+
                     // Reset Data
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Data Management")
