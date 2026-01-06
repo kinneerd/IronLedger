@@ -4,21 +4,76 @@ A minimal, focused iOS fitness tracker app for muscle-building, built with Swift
 
 ## Features
 
-### Core Functionality
-- **Fixed Workout Rotation**: A → B → C cycle (Bench Focus, Squat Focus, OHP + Back)
+### Workout Management
+- **Fixed Workout Rotation**: A → B → C cycle with automatic next workout tracking
+- **Manual Workout Selection**: Choose any workout (A/B/C) to override the rotation
+- **Real-time Duration Tracking**: Live timer showing workout duration
 - **Exercise Logging**: Sets, reps, weight with warm-up/working set distinction
-- **Rest Timer**: One-tap timer with exercise-specific defaults (2:30 main lifts, 1:30 compounds, 1:00 accessories)
-- **Progress Tracking**: PR detection, weight-over-time charts, exercise history
-- **Workout Summary Export**: One-tap copy for AI coach consultation
+- **Dynamic Set Management**: Add/remove sets on the fly during workout
+- **Notes System**: Per-exercise and workout-level notes
+- **Smart Pre-filling**: Weights auto-filled from your last session of the same workout type
 
-### Design Philosophy
+### Logging Enhancements
+- **Previous Workout Comparison**: See last session's numbers inline while logging (e.g., "Last: 225×5")
+- **Quick Weight Adjustments**: +5 / -5 lb buttons for fast weight changes without typing
+- **Collapsible Exercise Cards**: Minimize exercises you're not working on with progress indicators
+
+### Rest Timer
+- **Auto-triggered Timer**: Automatically starts when you complete a set
+- **Exercise-specific Defaults**: 2:30 main lifts, 1:30 compounds, 1:00 accessories
+- **Quick Adjustments**: +30s button and skip option
+- **Visual Feedback**: Circular progress indicator with haptic feedback on completion
+
+### Progress Tracking
+- **Automatic PR Detection**: App detects and celebrates new personal records
+- **Weight-over-Time Charts**: Visual progress per exercise using Swift Charts
+- **Exercise History**: Detailed breakdown of every session for each exercise
+- **Top PRs Display**: See your 5 strongest lifts at a glance
+- **PR Indicators**: Workout summaries automatically highlight new records
+
+### Workout Completion
+- **Context Capture**: Required energy level and sleep quality tracking
+- **Optional Tracking**: Bodyweight and workout notes
+- **Celebration Screen**: New PRs highlighted with trophy indicators
+- **AI Coach Export**: One-tap copy of formatted summary for AI coach consultation
+
+### History & Analytics
+- **Complete History Browser**: Browse all past workouts
+- **Smart Filtering**: Filter by workout type (A/B/C) or view all
+- **Monthly Grouping**: Workouts organized by month for easy navigation
+- **Detailed Workout View**: Full exercise breakdown with volume and duration
+- **Copy Past Summaries**: Share any historical workout summary
+
+### Template Management
+- **Customizable Templates**: Modify the 3 default workout templates (A, B, C)
+- **Full Exercise Control**: Add, edit, remove, and reorder exercises
+- **Per-exercise Settings**: Set default sets, reps, rest timers, and categories
+- **Category System**: Main lifts, compounds, and accessories with color coding
+- **Reset Option**: Restore default templates anytime
+
+### Data & Statistics
+- **Local Storage**: All data stored locally using UserDefaults (no cloud required)
+- **Lifetime Stats**: Total workouts, personal records count, total volume lifted
+- **Rotation Indicator**: Visual display of current position in A/B/C cycle
+- **Data Management**: Reset all data option with confirmation
+
+### Design & UX
+- **Dark Mode First**: High contrast, gym-friendly interface designed for low light
+- **Minimal & Focused**: Zero distractions, maximum clarity
+- **Custom Theme**: Deep black background with vibrant orange accent
+- **Tab Navigation**: Quick access to Home, History, Progress, and Settings
+- **Monospaced Numbers**: Easy-to-read digits for weights and reps
+- **Color Coding**: Orange (main lifts), blue (compounds), purple (accessories)
+
+## Design Philosophy
+
 > "My notebook, but it remembers everything and nudges me when it matters."
 
 - Never interrupts your lift
 - Never nags
 - Never requires thinking mid-set
 - Preserves program structure
-- Dark mode first, high contrast gym-friendly UI
+- User stays in control
 
 ## Requirements
 
@@ -108,8 +163,14 @@ Energy: OK 😐 | Sleep: Good 💪
 Notes: Left knee felt tight during warmup, loosened up after squats.
 ```
 
-## Future Enhancements (Not in v1)
+## Roadmap
 
+### Planned Features
+- **Rest Timer Auto-start**: Option to automatically start timer when completing a set
+- **Bible Verse on Rest Timer**: Display motivating scripture during rest periods
+- **Exercise Search Library**: Searchable database when adding exercises
+
+### Future Enhancements
 - Cloud sync/backup
 - Plate calculator
 - Superset grouping UI
