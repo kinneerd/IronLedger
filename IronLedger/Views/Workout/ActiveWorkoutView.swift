@@ -12,18 +12,30 @@ struct ActiveWorkoutView: View {
     @State private var showingCancelAlert = false
     @State private var showingCompleteSheet = false
     @State private var expandedExerciseId: UUID?
-    
+    @State private var restTimerEndTime: Date?
+    @State private var restTimerTotalSeconds: Int = 0
+
     var workout: WorkoutSession? {
         dataManager.activeWorkout
     }
-    
+
     var body: some View {
         NavigationStack {
             if let workout = workout {
-                ScrollView {
-                    VStack(spacing: 16) {
-                        // Workout header
-                        WorkoutHeaderView(workout: workout)
+                VStack(spacing: 0) {
+                    // Persistent rest timer banner at top
+                    if restTimerEndTime != nil {
+                        RestTimerBanner(
+                            endTime: $restTimerEndTime,
+                            totalSeconds: restTimerTotalSeconds,
+                            onDismiss: { restTimerEndTime = nil }
+                        )
+                    }
+
+                    ScrollView {
+                        VStack(spacing: 16) {
+                            // Workout header
+                            WorkoutHeaderView(workout: workout)
                         
                         // Exercises
                         ForEach(Array(workout.exercises.enumerated()), id: \.element.id) { index, exercise in
@@ -39,6 +51,9 @@ struct ActiveWorkoutView: View {
                                             expandedExerciseId = exercise.id
                                         }
                                     }
+                                },
+                                onStartRestTimer: { seconds in
+                                    startRestTimer(seconds: seconds)
                                 }
                             )
                         }
@@ -68,8 +83,9 @@ struct ActiveWorkoutView: View {
                         .padding(.top, 16)
                     }
                     .padding()
+                    }
+                    .background(Color.gymBackground)
                 }
-                .background(Color.gymBackground)
                 .navigationTitle(workout.workoutType.shortName)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
@@ -104,6 +120,11 @@ struct ActiveWorkoutView: View {
             get: { dataManager.activeWorkout?.exercises[workoutIndex] ?? exercise },
             set: { dataManager.activeWorkout?.exercises[workoutIndex] = $0 }
         )
+    }
+
+    func startRestTimer(seconds: Int) {
+        restTimerTotalSeconds = seconds
+        restTimerEndTime = Date().addingTimeInterval(TimeInterval(seconds))
     }
 }
 
@@ -162,11 +183,10 @@ struct ExerciseCard: View {
     let exerciseIndex: Int
     let isExpanded: Bool
     let onToggleExpand: () -> Void
+    let onStartRestTimer: (Int) -> Void
 
     @EnvironmentObject var dataManager: DataManager
 
-    @State private var showingRestTimer = false
-    @State private var restTimeRemaining: Int = 0
     @State private var showingNotes = false
 
     var completedSets: Int {
@@ -275,18 +295,6 @@ struct ExerciseCard: View {
             }
         }
         .cardStyle()
-        .overlay(
-            // Rest timer overlay
-            Group {
-                if showingRestTimer {
-                    RestTimerOverlay(
-                        timeRemaining: $restTimeRemaining,
-                        totalTime: exercise.restSeconds,
-                        onDismiss: { showingRestTimer = false }
-                    )
-                }
-            }
-        )
         .sheet(isPresented: $showingNotes) {
             NotesSheet(notes: $exercise.notes, exerciseName: exercise.exerciseName)
         }
@@ -310,8 +318,10 @@ struct ExerciseCard: View {
     }
     
     func startRestTimer() {
-        restTimeRemaining = exercise.restSeconds
-        showingRestTimer = true
+        // Dismiss keyboard before showing rest timer
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+
+        onStartRestTimer(exercise.restSeconds)
     }
 
     func previousSetData(for index: Int) -> ExerciseSet? {
@@ -483,9 +493,11 @@ struct RestTimerOverlay: View {
     let onDismiss: () -> Void
 
     @EnvironmentObject var dataManager: DataManager
+    @Environment(\.scenePhase) private var scenePhase
 
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     @State private var verse: BibleVerse = Verses.random()
+    @State private var endTime: Date = Date()
 
     var progress: Double {
         guard totalTime > 0 else { return 0 }
@@ -534,14 +546,14 @@ struct RestTimerOverlay: View {
                 .padding(.horizontal, 20)
                 .frame(maxWidth: 280)
             }
-            
+
             HStack(spacing: 16) {
-                Button(action: { timeRemaining += 30 }) {
+                Button(action: { addTime(30) }) {
                     Text("+30s")
                         .font(.gymCaption)
                 }
                 .buttonStyle(CompactButtonStyle(color: .gymTextSecondary))
-                
+
                 Button(action: onDismiss) {
                     Text("Skip")
                         .font(.gymCaption)
@@ -553,16 +565,38 @@ struct RestTimerOverlay: View {
         .background(Color.gymSurface.opacity(0.95))
         .cornerRadius(20)
         .shadow(color: .black.opacity(0.3), radius: 20)
-        .onReceive(timer) { _ in
-            if timeRemaining > 0 {
-                timeRemaining -= 1
-            } else {
-                // Vibrate when done
-                let generator = UINotificationFeedbackGenerator()
-                generator.notificationOccurred(.success)
-                onDismiss()
+        .onAppear {
+            // Set end time when timer first appears
+            endTime = Date().addingTimeInterval(TimeInterval(timeRemaining))
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            // Recalculate time remaining when app becomes active
+            if newPhase == .active {
+                updateTimeRemaining()
             }
         }
+        .onReceive(timer) { _ in
+            updateTimeRemaining()
+        }
+    }
+
+    private func updateTimeRemaining() {
+        let remaining = Int(endTime.timeIntervalSinceNow)
+
+        if remaining > 0 {
+            timeRemaining = remaining
+        } else if timeRemaining > 0 {
+            // Timer just finished
+            timeRemaining = 0
+            let generator = UINotificationFeedbackGenerator()
+            generator.notificationOccurred(.success)
+            onDismiss()
+        }
+    }
+
+    private func addTime(_ seconds: Int) {
+        endTime = endTime.addingTimeInterval(TimeInterval(seconds))
+        timeRemaining += seconds
     }
     
     func formatTime(_ seconds: Int) -> String {
@@ -599,6 +633,145 @@ struct NotesSheet: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - Rest Timer Banner
+
+struct RestTimerBanner: View {
+    @Binding var endTime: Date?
+    let totalSeconds: Int
+    let onDismiss: () -> Void
+
+    @EnvironmentObject var dataManager: DataManager
+    @Environment(\.scenePhase) private var scenePhase
+
+    let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    @State private var timeRemaining: Int = 0
+    @State private var verse: BibleVerse = Verses.random()
+
+    var progress: Double {
+        guard totalSeconds > 0 else { return 0 }
+        return Double(totalSeconds - timeRemaining) / Double(totalSeconds)
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 12) {
+                // Circular progress indicator
+                ZStack {
+                    Circle()
+                        .stroke(Color.gymTextTertiary.opacity(0.2), lineWidth: 3)
+
+                    Circle()
+                        .trim(from: 0, to: progress)
+                        .stroke(Color.gymAccent, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                        .animation(.linear(duration: 1), value: progress)
+
+                    Text(formatTime(timeRemaining))
+                        .font(.system(size: 14, weight: .semibold, design: .monospaced))
+                        .foregroundColor(.gymTextPrimary)
+                }
+                .frame(width: 44, height: 44)
+
+                // Rest label and timer info
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("REST")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.gymTextTertiary)
+                        .tracking(1)
+
+                    if !dataManager.appState.showBibleVerses {
+                        Text("Rest period in progress")
+                            .font(.system(size: 11, weight: .regular))
+                            .foregroundColor(.gymTextSecondary)
+                    }
+                }
+
+                Spacer()
+
+                // +30s button
+                Button(action: { addTime(30) }) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.title3)
+                        .foregroundColor(.gymTextSecondary)
+                }
+
+                // Skip button
+                Button(action: onDismiss) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.title3)
+                        .foregroundColor(.gymTextSecondary)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+
+            // Bible verse (full text)
+            if dataManager.appState.showBibleVerses {
+                VStack(spacing: 4) {
+                    Text(verse.text)
+                        .font(.system(size: 12, weight: .regular))
+                        .foregroundColor(.gymTextSecondary)
+                        .multilineTextAlignment(.center)
+                        .italic()
+                        .lineLimit(3)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Text("— \(verse.reference)")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(.gymTextTertiary)
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 12)
+            }
+        }
+        .background(Color.gymSurface)
+        .overlay(
+            Rectangle()
+                .frame(height: 1)
+                .foregroundColor(Color.gymTextTertiary.opacity(0.1)),
+            alignment: .bottom
+        )
+        .onAppear {
+            updateTimeRemaining()
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                updateTimeRemaining()
+            }
+        }
+        .onReceive(timer) { _ in
+            updateTimeRemaining()
+        }
+    }
+
+    private func updateTimeRemaining() {
+        guard let endTime = endTime else { return }
+        let remaining = Int(endTime.timeIntervalSinceNow)
+
+        if remaining > 0 {
+            timeRemaining = remaining
+        } else if timeRemaining > 0 {
+            // Timer just finished
+            timeRemaining = 0
+            let generator = UINotificationFeedbackGenerator()
+            generator.notificationOccurred(.success)
+            onDismiss()
+        }
+    }
+
+    private func addTime(_ seconds: Int) {
+        guard let currentEndTime = endTime else { return }
+        endTime = currentEndTime.addingTimeInterval(TimeInterval(seconds))
+        timeRemaining += seconds
+    }
+
+    func formatTime(_ seconds: Int) -> String {
+        let mins = seconds / 60
+        let secs = seconds % 60
+        return String(format: "%d:%02d", mins, secs)
     }
 }
 
