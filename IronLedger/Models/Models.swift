@@ -316,16 +316,19 @@ struct AppState: Codable {
     var templates: [WorkoutTemplate]
     var workoutHistory: [WorkoutSession]
     var personalRecords: [String: PersonalRecord]  // exerciseName -> best PR
-    
+    var showBibleVerses: Bool
+
     init(
         nextWorkoutType: WorkoutType = .benchFocus,
         templates: [WorkoutTemplate] = [],
         workoutHistory: [WorkoutSession] = [],
-        personalRecords: [String: PersonalRecord] = [:]
+        personalRecords: [String: PersonalRecord] = [:],
+        showBibleVerses: Bool = true
     ) {
         self.nextWorkoutType = nextWorkoutType
         self.templates = templates
         self.workoutHistory = workoutHistory
         self.personalRecords = personalRecords
+        self.showBibleVerses = showBibleVerses
     }
 }

@@ -19,6 +19,7 @@
 		010 /* ProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 110 /* ProgressView.swift */; };
 		011 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111 /* SettingsView.swift */; };
 		012 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 112 /* Assets.xcassets */; };
+		379864F32F0D971C00945ADA /* Verses.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379864F22F0D971C00945ADA /* Verses.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -35,6 +36,7 @@
 		110 /* ProgressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressView.swift; sourceTree = "<group>"; };
 		111 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		112 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		379864F22F0D971C00945ADA /* Verses.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Verses.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -79,6 +81,7 @@
 		303 /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				379864F22F0D971C00945ADA /* Verses.swift */,
 				102 /* Models.swift */,
 			);
 			path = Models;
@@ -219,6 +222,7 @@
 				001 /* IronLedgerApp.swift in Sources */,
 				002 /* Models.swift in Sources */,
 				003 /* DataManager.swift in Sources */,
+				379864F32F0D971C00945ADA /* Verses.swift in Sources */,
 				004 /* ContentView.swift in Sources */,
 				005 /* Theme.swift in Sources */,
 				006 /* HomeView.swift in Sources */,

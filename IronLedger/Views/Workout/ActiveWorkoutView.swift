@@ -481,37 +481,59 @@ struct RestTimerOverlay: View {
     @Binding var timeRemaining: Int
     let totalTime: Int
     let onDismiss: () -> Void
-    
+
+    @EnvironmentObject var dataManager: DataManager
+
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
-    
+    @State private var verse: BibleVerse = Verses.random()
+
     var progress: Double {
         guard totalTime > 0 else { return 0 }
         return Double(totalTime - timeRemaining) / Double(totalTime)
     }
-    
+
     var body: some View {
         VStack(spacing: 16) {
             Text("REST")
                 .font(.gymCaption)
                 .foregroundColor(.gymTextTertiary)
                 .tracking(2)
-            
+
             ZStack {
                 Circle()
                     .stroke(Color.gymTextTertiary.opacity(0.2), lineWidth: 6)
-                
+
                 Circle()
                     .trim(from: 0, to: progress)
                     .stroke(Color.gymAccent, style: StrokeStyle(lineWidth: 6, lineCap: .round))
                     .rotationEffect(.degrees(-90))
                     .animation(.linear(duration: 1), value: progress)
-                
+
                 Text(formatTime(timeRemaining))
                     .font(.gymLargeNumber)
                     .foregroundColor(.gymTextPrimary)
                     .monospacedDigit()
             }
             .frame(width: 120, height: 120)
+
+            // Bible verse (if enabled)
+            if dataManager.appState.showBibleVerses {
+                VStack(spacing: 6) {
+                    Text(verse.text)
+                        .font(.system(size: 13, weight: .regular))
+                        .foregroundColor(.gymTextSecondary)
+                        .multilineTextAlignment(.center)
+                        .italic()
+                        .lineLimit(3)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Text("— \(verse.reference)")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.gymTextTertiary)
+                }
+                .padding(.horizontal, 20)
+                .frame(maxWidth: 280)
+            }
             
             HStack(spacing: 16) {
                 Button(action: { timeRemaining += 30 }) {
