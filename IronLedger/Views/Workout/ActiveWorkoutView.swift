@@ -361,25 +361,49 @@ struct SetRow: View {
                     .background(set.setType == .warmup ? Color.warmupColor.opacity(0.2) : Color.gymElevated)
                     .cornerRadius(6)
 
-                // Weight input
-                HStack(spacing: 4) {
-                    TextField("—", text: $weightText)
-                        .keyboardType(.decimalPad)
-                        .multilineTextAlignment(.center)
-                        .font(.gymSubheadline)
-                        .foregroundColor(.gymTextPrimary)
-                        .frame(width: 60)
-                        .focused($focusedField, equals: .weight)
-                        .onChange(of: weightText) { _, newValue in
-                            set.weight = Double(newValue)
+                // Weight input with adjustment buttons
+                VStack(spacing: 2) {
+                    HStack(spacing: 4) {
+                        // -5 button
+                        Button(action: { adjustWeight(by: -5) }) {
+                            Image(systemName: "minus")
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundColor(.gymTextSecondary)
                         }
+                        .frame(width: 24, height: 24)
+                        .background(Color.gymBackground)
+                        .cornerRadius(4)
+                        .buttonStyle(.plain)
+
+                        TextField("—", text: $weightText)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.center)
+                            .font(.gymSubheadline)
+                            .foregroundColor(.gymTextPrimary)
+                            .frame(width: 48)
+                            .focused($focusedField, equals: .weight)
+                            .onChange(of: weightText) { _, newValue in
+                                set.weight = Double(newValue)
+                            }
+
+                        // +5 button
+                        Button(action: { adjustWeight(by: 5) }) {
+                            Image(systemName: "plus")
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundColor(.gymTextSecondary)
+                        }
+                        .frame(width: 24, height: 24)
+                        .background(Color.gymBackground)
+                        .cornerRadius(4)
+                        .buttonStyle(.plain)
+                    }
 
                     Text("lbs")
-                        .font(.gymCaption)
+                        .font(.system(size: 10, weight: .medium))
                         .foregroundColor(.gymTextTertiary)
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 10)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
                 .background(Color.gymElevated)
                 .cornerRadius(8)
 
@@ -441,6 +465,13 @@ struct SetRow: View {
                 repsText = String(reps)
             }
         }
+    }
+
+    func adjustWeight(by amount: Double) {
+        let currentWeight = set.weight ?? 0
+        let newWeight = max(0, currentWeight + amount)
+        set.weight = newWeight
+        weightText = String(Int(newWeight))
     }
 }
 
