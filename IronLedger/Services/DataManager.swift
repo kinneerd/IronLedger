@@ -254,8 +254,13 @@ extension WorkoutSession {
             let setsString = workingSets.map { set -> String in
                 if let time = set.timeSeconds {
                     return "\(time)s"
-                } else if let reps = set.reps, let weight = set.weight {
-                    return "\(Int(weight))×\(reps)"
+                } else if let reps = set.reps {
+                    if let weight = set.weight, weight > 0 {
+                        return "\(Int(weight))×\(reps)"
+                    } else {
+                        // Bodyweight exercise
+                        return "BW×\(reps)"
+                    }
                 }
                 return "—"
             }.joined(separator: ", ")
