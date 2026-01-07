@@ -156,7 +156,9 @@ struct QuickStatsView: View {
     
     var thisWeekWorkouts: Int {
         let calendar = Calendar.current
-        let startOfWeek = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: Date()))!
+        guard let startOfWeek = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: Date())) else {
+            return 0
+        }
         return dataManager.appState.workoutHistory.filter {
             $0.isCompleted && $0.startTime >= startOfWeek
         }.count

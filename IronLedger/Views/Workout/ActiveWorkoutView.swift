@@ -113,12 +113,25 @@ struct ActiveWorkoutView: View {
     }
     
     func binding(for exercise: LoggedExercise) -> Binding<LoggedExercise> {
-        guard let workoutIndex = dataManager.activeWorkout?.exercises.firstIndex(where: { $0.id == exercise.id }) else {
-            return .constant(exercise)
-        }
         return Binding(
-            get: { dataManager.activeWorkout?.exercises[workoutIndex] ?? exercise },
-            set: { dataManager.activeWorkout?.exercises[workoutIndex] = $0 }
+            get: {
+                // Find exercise by ID in current active workout
+                if let currentWorkout = dataManager.activeWorkout,
+                   let index = currentWorkout.exercises.firstIndex(where: { $0.id == exercise.id }) {
+                    return currentWorkout.exercises[index]
+                }
+                // Fallback to original exercise (shouldn't happen in normal flow)
+                return exercise
+            },
+            set: { newValue in
+                // Update exercise by ID in active workout
+                if let index = dataManager.activeWorkout?.exercises.firstIndex(where: { $0.id == exercise.id }) {
+                    dataManager.activeWorkout?.exercises[index] = newValue
+                    dataManager.save() // Persist changes immediately
+                } else {
+                    print("⚠️ WARNING: Attempted to update exercise not found in active workout")
+                }
+            }
         )
     }
 
@@ -393,7 +406,7 @@ struct SetRow: View {
                             .frame(width: 48)
                             .focused($focusedField, equals: .weight)
                             .onChange(of: weightText) { _, newValue in
-                                set.weight = Double(newValue)
+                                validateAndSetWeight(newValue)
                             }
 
                         // +5 button
@@ -427,7 +440,7 @@ struct SetRow: View {
                         .frame(width: 40)
                         .focused($focusedField, equals: .reps)
                         .onChange(of: repsText) { _, newValue in
-                            set.reps = Int(newValue)
+                            validateAndSetReps(newValue)
                         }
 
                     Text("reps")
@@ -483,126 +496,67 @@ struct SetRow: View {
         set.weight = newWeight
         weightText = String(Int(newWeight))
     }
-}
 
-// MARK: - Rest Timer Overlay
+    func validateAndSetWeight(_ input: String) {
+        // Remove leading zeros and validate
+        let trimmed = input.trimmingCharacters(in: .whitespaces)
 
-struct RestTimerOverlay: View {
-    @Binding var timeRemaining: Int
-    let totalTime: Int
-    let onDismiss: () -> Void
+        // Allow empty string
+        if trimmed.isEmpty {
+            set.weight = nil
+            return
+        }
 
-    @EnvironmentObject var dataManager: DataManager
-    @Environment(\.scenePhase) private var scenePhase
+        // Validate numeric input
+        guard let value = Double(trimmed) else {
+            // Invalid input - revert to previous value
+            if let currentWeight = set.weight {
+                weightText = String(Int(currentWeight))
+            } else {
+                weightText = ""
+            }
+            return
+        }
 
-    let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
-    @State private var verse: BibleVerse = Verses.random()
-    @State private var endTime: Date = Date()
+        // Apply bounds: 0 to 2000 lbs (reasonable max for gym exercises)
+        let bounded = min(max(0, value), 2000)
 
-    var progress: Double {
-        guard totalTime > 0 else { return 0 }
-        return Double(totalTime - timeRemaining) / Double(totalTime)
+        // Round to nearest 0.5 for decimal input
+        let rounded = (bounded * 2).rounded() / 2
+
+        set.weight = rounded > 0 ? rounded : nil
     }
 
-    var body: some View {
-        VStack(spacing: 16) {
-            Text("REST")
-                .font(.gymCaption)
-                .foregroundColor(.gymTextTertiary)
-                .tracking(2)
+    func validateAndSetReps(_ input: String) {
+        // Remove leading zeros and validate
+        let trimmed = input.trimmingCharacters(in: .whitespaces)
 
-            ZStack {
-                Circle()
-                    .stroke(Color.gymTextTertiary.opacity(0.2), lineWidth: 6)
+        // Allow empty string
+        if trimmed.isEmpty {
+            set.reps = nil
+            return
+        }
 
-                Circle()
-                    .trim(from: 0, to: progress)
-                    .stroke(Color.gymAccent, style: StrokeStyle(lineWidth: 6, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
-                    .animation(.linear(duration: 1), value: progress)
-
-                Text(formatTime(timeRemaining))
-                    .font(.gymLargeNumber)
-                    .foregroundColor(.gymTextPrimary)
-                    .monospacedDigit()
+        // Validate numeric input
+        guard let value = Int(trimmed) else {
+            // Invalid input - revert to previous value
+            if let currentReps = set.reps {
+                repsText = String(currentReps)
+            } else {
+                repsText = ""
             }
-            .frame(width: 120, height: 120)
-
-            // Bible verse (if enabled)
-            if dataManager.appState.showBibleVerses {
-                VStack(spacing: 6) {
-                    Text(verse.text)
-                        .font(.system(size: 13, weight: .regular))
-                        .foregroundColor(.gymTextSecondary)
-                        .multilineTextAlignment(.center)
-                        .italic()
-                        .lineLimit(3)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    Text("— \(verse.reference)")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(.gymTextTertiary)
-                }
-                .padding(.horizontal, 20)
-                .frame(maxWidth: 280)
-            }
-
-            HStack(spacing: 16) {
-                Button(action: { addTime(30) }) {
-                    Text("+30s")
-                        .font(.gymCaption)
-                }
-                .buttonStyle(CompactButtonStyle(color: .gymTextSecondary))
-
-                Button(action: onDismiss) {
-                    Text("Skip")
-                        .font(.gymCaption)
-                }
-                .buttonStyle(CompactButtonStyle())
-            }
+            return
         }
-        .padding(24)
-        .background(Color.gymSurface.opacity(0.95))
-        .cornerRadius(20)
-        .shadow(color: .black.opacity(0.3), radius: 20)
-        .onAppear {
-            // Set end time when timer first appears
-            endTime = Date().addingTimeInterval(TimeInterval(timeRemaining))
-        }
-        .onChange(of: scenePhase) { _, newPhase in
-            // Recalculate time remaining when app becomes active
-            if newPhase == .active {
-                updateTimeRemaining()
-            }
-        }
-        .onReceive(timer) { _ in
-            updateTimeRemaining()
-        }
-    }
 
-    private func updateTimeRemaining() {
-        let remaining = Int(endTime.timeIntervalSinceNow)
+        // Apply bounds: 1 to 100 reps (reasonable range)
+        let bounded = min(max(1, value), 100)
 
-        if remaining > 0 {
-            timeRemaining = remaining
-        } else if timeRemaining > 0 {
-            // Timer just finished
-            timeRemaining = 0
-            let generator = UINotificationFeedbackGenerator()
-            generator.notificationOccurred(.success)
-            onDismiss()
+        set.reps = bounded
+
+        // Update text field if value was adjusted
+        if bounded != value {
+            repsText = String(bounded)
         }
-    }
-
-    private func addTime(_ seconds: Int) {
-        endTime = endTime.addingTimeInterval(TimeInterval(seconds))
-        timeRemaining += seconds
-    }
-    
-    func formatTime(_ seconds: Int) -> String {
-        let mins = seconds / 60
-        let secs = seconds % 60
-        return String(format: "%d:%02d", mins, secs)
     }
 }
 

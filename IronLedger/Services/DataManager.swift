@@ -17,19 +17,38 @@ class DataManager: ObservableObject {
     
     init() {
         // Load saved state or create default
-        if let data = UserDefaults.standard.data(forKey: saveKey),
-           let decoded = try? JSONDecoder().decode(AppState.self, from: data) {
-            self.appState = decoded
+        if let data = UserDefaults.standard.data(forKey: saveKey) {
+            do {
+                let decoded = try JSONDecoder().decode(AppState.self, from: data)
+                self.appState = decoded
+            } catch {
+                print("⚠️ WARNING: Failed to decode saved data: \(error.localizedDescription)")
+                print("Creating fresh app state with default templates")
+                self.appState = AppState(templates: Self.defaultTemplates())
+            }
         } else {
+            // No saved data - first launch
             self.appState = AppState(templates: Self.defaultTemplates())
         }
     }
     
     // MARK: - Persistence
-    
+
     func save() {
-        if let encoded = try? JSONEncoder().encode(appState) {
+        do {
+            let encoded = try JSONEncoder().encode(appState)
             UserDefaults.standard.set(encoded, forKey: saveKey)
+
+            // Synchronize to ensure data is written to disk
+            UserDefaults.standard.synchronize()
+        } catch {
+            // Log error for debugging
+            print("❌ CRITICAL: Failed to save workout data: \(error.localizedDescription)")
+
+            // In production, you might want to:
+            // 1. Show user alert
+            // 2. Attempt backup save to file system
+            // 3. Send error report to analytics
         }
     }
     

@@ -142,23 +142,38 @@ struct CompleteWorkoutSheet: View {
     
     func completeWorkout() {
         guard canComplete else { return }
-        
-        // Update workout with context
+
+        // Validate and update workout with context
         dataManager.activeWorkout?.energyLevel = energyLevel
         dataManager.activeWorkout?.sleepQuality = sleepQuality
-        dataManager.activeWorkout?.bodyweight = Double(bodyweight)
+        dataManager.activeWorkout?.bodyweight = validateBodyweight(bodyweight)
         dataManager.activeWorkout?.notes = workoutNotes
-        
+
         // Complete and save
         dataManager.completeWorkout()
-        
+
         // Show summary
         dismiss()
-        
+
         // Slight delay to allow dismiss animation
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             showingSummary = true
         }
+    }
+
+    func validateBodyweight(_ input: String) -> Double? {
+        let trimmed = input.trimmingCharacters(in: .whitespaces)
+
+        // Allow empty
+        guard !trimmed.isEmpty else { return nil }
+
+        // Validate numeric
+        guard let value = Double(trimmed) else { return nil }
+
+        // Apply reasonable bounds: 50 to 500 lbs
+        guard value >= 50 && value <= 500 else { return nil }
+
+        return value
     }
 }
 
